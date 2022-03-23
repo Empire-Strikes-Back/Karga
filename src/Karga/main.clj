@@ -12,7 +12,7 @@
 
    [Karga.drawing]
    [Karga.seed]
-   [Karga.baked_potatoes]
+   [Karga.microwaved_potatoes]
    [Karga.popcorn]
    [Karga.salt])
   (:import
