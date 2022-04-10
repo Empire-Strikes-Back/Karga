@@ -1,4 +1,4 @@
-(ns Karga.salt
+(ns Karga.apples
   (:require
    [clojure.core.async :as Little-Rock
     :refer [chan put! take! close! offer! to-chan! timeout thread

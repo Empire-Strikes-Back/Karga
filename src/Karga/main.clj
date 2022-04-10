@@ -12,9 +12,10 @@
 
    [Karga.drawing]
    [Karga.seed]
-   [Karga.microwaved_potatoes]
-   [Karga.popcorn]
-   [Karga.salt])
+   [Karga.raisins]
+   [Karga.sunflower-seeds]
+   [Karga.apples]
+   [Karga.corn])
   (:import
    (javax.swing JFrame WindowConstants ImageIcon JPanel JScrollPane JTextArea BoxLayout JEditorPane ScrollPaneConstants))
   (:gen-class))
