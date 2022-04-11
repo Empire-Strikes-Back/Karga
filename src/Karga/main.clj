@@ -224,26 +224,26 @@
                                     (andThen [_ after] after)))
 
       #_(let [jtoolbar (JToolBar.)]
-        (doto jtoolbar
-          #_(.setMargin (Insets. 3 3 3 3))
-          (.add (doto (JButton.)
-                  (.setToolTipText "new file")
-                  (.setIcon (FontIcon/of org.kordamp.ikonli.codicons.Codicons/NEW_FILE (UIScale/scale 16) Color/BLACK))))
-          (.add (doto (JButton.)
-                  (.setToolTipText "open file")
-                  (.setIcon (FontIcon/of org.kordamp.ikonli.codicons.Codicons/FOLDER_OPENED (UIScale/scale 16) Color/BLACK))))
-          (.add (doto (JButton.)
-                  (.setToolTipText "save")
-                  (.setIcon (FontIcon/of org.kordamp.ikonli.codicons.Codicons/SAVE (UIScale/scale 16) Color/BLACK))))
-          (.add (doto (JButton.)
-                  (.setToolTipText "undo")
-                  (.setIcon (FontIcon/of org.kordamp.ikonli.codicons.Codicons/DISCARD (UIScale/scale 16) Color/BLACK))))
-          (.add (doto (JButton.)
-                  (.setToolTipText "redo")
-                  (.setIcon (FontIcon/of org.kordamp.ikonli.codicons.Codicons/REDO (UIScale/scale 16) Color/BLACK))))
-          #_(.addSeparator))
+          (doto jtoolbar
+            #_(.setMargin (Insets. 3 3 3 3))
+            (.add (doto (JButton.)
+                    (.setToolTipText "new file")
+                    (.setIcon (FontIcon/of org.kordamp.ikonli.codicons.Codicons/NEW_FILE (UIScale/scale 16) Color/BLACK))))
+            (.add (doto (JButton.)
+                    (.setToolTipText "open file")
+                    (.setIcon (FontIcon/of org.kordamp.ikonli.codicons.Codicons/FOLDER_OPENED (UIScale/scale 16) Color/BLACK))))
+            (.add (doto (JButton.)
+                    (.setToolTipText "save")
+                    (.setIcon (FontIcon/of org.kordamp.ikonli.codicons.Codicons/SAVE (UIScale/scale 16) Color/BLACK))))
+            (.add (doto (JButton.)
+                    (.setToolTipText "undo")
+                    (.setIcon (FontIcon/of org.kordamp.ikonli.codicons.Codicons/DISCARD (UIScale/scale 16) Color/BLACK))))
+            (.add (doto (JButton.)
+                    (.setToolTipText "redo")
+                    (.setIcon (FontIcon/of org.kordamp.ikonli.codicons.Codicons/REDO (UIScale/scale 16) Color/BLACK))))
+            #_(.addSeparator))
 
-        (.add root-panel jtoolbar "dock north"))
+          (.add root-panel jtoolbar "dock north"))
 
       (let [content-panel (JPanel.)
             split-pane (JSplitPane.)]
@@ -252,58 +252,58 @@
           #_(.add (doto split-pane
                     (.setResizeWeight 0.5))))
 
-        (let [code-panel (JPanel.)
-              code-layout (BoxLayout. code-panel BoxLayout/Y_AXIS)
-              repl (JTextArea. 1 80)
-              output (JTextArea. 14 80)
-              output-scroll (JScrollPane.)
-              editor (JEditorPane.)
-              editor-scroll (JScrollPane.)]
+        #_(let [code-panel (JPanel.)
+                code-layout (BoxLayout. code-panel BoxLayout/Y_AXIS)
+                repl (JTextArea. 1 80)
+                output (JTextArea. 14 80)
+                output-scroll (JScrollPane.)
+                editor (JEditorPane.)
+                editor-scroll (JScrollPane.)]
 
-          (doto editor
-            (.setBorder (EmptyBorder. #_top 0 #_left 0 #_bottom 0 #_right 0)))
+            (doto editor
+              (.setBorder (EmptyBorder. #_top 0 #_left 0 #_bottom 0 #_right 0)))
 
-          (doto editor-scroll
-            (.setViewportView editor)
-            (.setHorizontalScrollBarPolicy ScrollPaneConstants/HORIZONTAL_SCROLLBAR_NEVER)
-            #_(.setPreferredSize (Dimension. 800 1300)))
+            (doto editor-scroll
+              (.setViewportView editor)
+              (.setHorizontalScrollBarPolicy ScrollPaneConstants/HORIZONTAL_SCROLLBAR_NEVER)
+              #_(.setPreferredSize (Dimension. 800 1300)))
 
-          (doto output
-            (.setEditable false))
+            (doto output
+              (.setEditable false))
 
-          (doto output-scroll
-            (.setViewportView output)
-            (.setHorizontalScrollBarPolicy ScrollPaneConstants/HORIZONTAL_SCROLLBAR_NEVER))
+            (doto output-scroll
+              (.setViewportView output)
+              (.setHorizontalScrollBarPolicy ScrollPaneConstants/HORIZONTAL_SCROLLBAR_NEVER))
 
-          (doto repl
-            (.addKeyListener (reify KeyListener
-                               (keyPressed
-                                 [_ event]
-                                 (when (= (.getKeyCode ^KeyEvent event) KeyEvent/VK_ENTER)
-                                   (.consume ^KeyEvent event)))
-                               (keyReleased
-                                 [_ event]
-                                 (when (= (.getKeyCode ^KeyEvent event) KeyEvent/VK_ENTER)
-                                   (-> (.getText repl) (clojure.string/trim) (clojure.string/trim-newline) (read-string) (eval-form))
-                                   (.setText repl "")))
-                               (keyTyped
-                                 [_ event]))))
+            (doto repl
+              (.addKeyListener (reify KeyListener
+                                 (keyPressed
+                                   [_ event]
+                                   (when (= (.getKeyCode ^KeyEvent event) KeyEvent/VK_ENTER)
+                                     (.consume ^KeyEvent event)))
+                                 (keyReleased
+                                   [_ event]
+                                   (when (= (.getKeyCode ^KeyEvent event) KeyEvent/VK_ENTER)
+                                     (-> (.getText repl) (clojure.string/trim) (clojure.string/trim-newline) (read-string) (eval-form))
+                                     (.setText repl "")))
+                                 (keyTyped
+                                   [_ event]))))
 
-          (doto code-panel
-            (.setLayout (MigLayout. "insets 0"
-                                    "[grow,shrink,fill]"
-                                    "[grow,shrink,fill]"))
-            (.add editor-scroll "wrap,height 70%")
-            (.add output-scroll "wrap,height 30%")
-            (.add repl "wrap"))
+            (doto code-panel
+              (.setLayout (MigLayout. "insets 0"
+                                      "[grow,shrink,fill]"
+                                      "[grow,shrink,fill]"))
+              (.add editor-scroll "wrap,height 70%")
+              (.add output-scroll "wrap,height 30%")
+              (.add repl "wrap"))
 
-          (.add root-panel code-panel "dock west")
-          #_(.setLeftComponent split-pane code-panel)
+            (.add root-panel code-panel "dock west")
+            #_(.setLeftComponent split-pane code-panel)
 
-          (swap! stateA merge {:output-scroll output-scroll
-                               :repl repl
-                               :output output
-                               :editor editor}))
+            (swap! stateA merge {:output-scroll output-scroll
+                                 :repl repl
+                                 :output output
+                                 :editor editor}))
 
         (let [canvas (Canvas.)
               canvas-panel (JPanel.)]
@@ -329,7 +329,7 @@
 
           (.add canvas-panel canvas "width 100%!,height 100%!")
 
-          (.add root-panel canvas-panel "dock east,width 50%!, height 1:100%:")
+          (.add root-panel canvas-panel "dock east,width 100%!, height 1:100%:")
           (go
             (<! (timeout 50))
             (swap! stateA merge {:canvas canvas
@@ -443,7 +443,7 @@
                           (put! canvas-draw| true))))
 
            (do
-             (eval-form `(print-fns))
+             #_(eval-form `(print-fns))
              (force-resize))))))))
 
 (defn reload
