@@ -9,6 +9,10 @@
    [clojure.java.io :as Wichita.java.io]
    [clojure.string :as Wichita.string]
    [clojure.repl :as Wichita.repl]
+   [clojure.walk :as Wichita.walk]
+   [clojure.test.check.generators :as Pawny.generators]
+   [clj-http.client]
+   [cheshire.core]
 
    [Karga.drawing]
    [Karga.seed]
@@ -18,7 +22,7 @@
    [Karga.corn])
   (:import
    (javax.swing JFrame WindowConstants ImageIcon JPanel JScrollPane JTextArea BoxLayout JEditorPane ScrollPaneConstants SwingUtilities JDialog)
-   (javax.swing JMenu JMenuItem JMenuBar KeyStroke JOptionPane JToolBar JButton JToggleButton JSplitPane)
+   (javax.swing JMenu JMenuItem JMenuBar KeyStroke JOptionPane JToolBar JButton JToggleButton JSplitPane JLabel)
    (javax.swing.border EmptyBorder)
    (java.awt Canvas Graphics Graphics2D Shape Color Polygon Dimension BasicStroke Toolkit Insets BorderLayout)
    (java.awt.event KeyListener KeyEvent MouseListener MouseEvent ActionListener ActionEvent ComponentListener ComponentEvent)
@@ -33,13 +37,19 @@
    (org.kordamp.ikonli.swing FontIcon)
    (org.kordamp.ikonli.codicons Codicons)
    (net.miginfocom.swing MigLayout)
-   (net.miginfocom.layout ConstraintParser LC UnitValue))
+   (net.miginfocom.layout ConstraintParser LC UnitValue)
+
+   (java.awt.image BufferedImage)
+   (java.awt Image Graphics2D Color)
+   (javax.imageio ImageIO)
+   (java.security MessageDigest))
   (:gen-class))
 
 #_(println (System/getProperty "clojure.core.async.pool-size"))
 (do (set! *warn-on-reflection* true) (set! *unchecked-math* true))
 
 (defonce stateA (atom nil))
+(defonce shapesA (atom nil))
 (defn jframe ^JFrame [] (:jframe @stateA))
 (defn canvas ^Canvas [] (:canvas @stateA))
 (defn repl ^JTextArea [] (:repl @stateA))
@@ -78,6 +88,31 @@
          (let [scrollbar (.getVerticalScrollBar output-scroll)]
            (.setValue scrollbar (.getMaximum scrollbar))))))))
 
+(defn color-for-word
+  [word]
+  (let [digest (->
+                (doto (MessageDigest/getInstance "SHA-256")
+                  (.update (.getBytes ^String word)))
+                (.digest))]
+    (let [size (alength digest)
+          step 3
+          n (- size (mod size 3))
+          positions (range 0 n step)
+          positions-size (count positions)
+          colors (->>
+                  (reduce
+                   (fn [result i]
+                     (-> result
+                         (update :red + (bit-and (aget digest i) 0xff))
+                         (update :green + (bit-and (aget digest (+ i 1)) 0xff))
+                         (update :blue + (bit-and (aget digest (+ i 2)) 0xff))))
+                   {:red 0 :green 0 :blue 0}
+                   positions)
+                  (map (fn [[k value]]
+                         [k (-> value (/ positions-size))]))
+                  (into {}))]
+      (Color. (int (:red colors)) (int (:green colors)) (int (:blue colors))))))
+
 (defn draw-word
   "draw word"
   []
@@ -91,6 +126,56 @@
   (let [{:keys [^Graphics2D graphics
                 ^Canvas canvas]} @stateA]
     (.drawLine graphics  (* 0.3 (.getWidth canvas)) (* 0.3 (.getHeight canvas)) (* 0.7 (.getWidth canvas)) (* 0.7 (.getHeight canvas)))))
+
+(defn draw-grid
+  []
+  (let [{:keys [^Graphics2D graphics
+                ^Canvas canvas
+                grid-rows
+                grid-cols]} @stateA
+        row-height (/ (.getHeight canvas) grid-rows)
+        col-width (/ (.getWidth canvas) grid-cols)]
+    (doseq [row-i (range grid-rows)]
+      (let [y (* row-i row-height)]
+        (.drawLine graphics 0 y (.getWidth canvas) y)))
+    (doseq [col-i (range grid-cols)]
+      (let [x (* col-i col-width)]
+        (.drawLine graphics x 0 x (.getHeight canvas))))))
+
+(defn draw-question-challenges
+  []
+  (let [{:keys [^Graphics2D graphics
+                ^Canvas canvas
+                grid-rows
+                grid-cols
+                question-challenges
+                categories
+                categories-name-to-category]} @stateA
+        row-height (/ (.getHeight canvas) grid-rows)
+        col-width (/ (.getWidth canvas) grid-cols)
+        question-challenge-states (for [[question [row-i col-i]] question-challenges
+                                        :let [x (* col-i col-width)
+                                              y (* row-i row-height)
+                                              category-id (:id (get categories-name-to-category (:category question)))
+                                              category-color (:color (get categories-name-to-category (:category question)))
+                                              category-shape (Ellipse2D$Double. x y (* 0.7 col-width) (* 0.7 row-height))]]
+                                    {:question question
+                                     :x x
+                                     :y y
+                                     :category-id category-id
+                                     :category-color category-color
+                                     :category-shape category-shape})]
+    (swap! shapesA assoc :question-challenge-states question-challenge-states)
+    (doseq [{:keys [question
+                    category-id
+                    category-shape
+                    category-color
+                    x
+                    y]} question-challenge-states]
+      #_(.drawString graphics (str category-id) (int x) (int y))
+      (.setPaint graphics category-color)
+      (.fill graphics category-shape)
+      (.setPaint graphics Color/BLACK))))
 
 (defn clear-canvas
   []
@@ -149,7 +234,7 @@
 
       (doto root-panel
         #_(.setLayout (BoxLayout. root-panel BoxLayout/Y_AXIS))
-        (.setLayout (MigLayout. "insets 10"
+        (.setLayout (MigLayout. "wrap,insets 10"
                                 "[grow,shrink,fill]"
                                 "[grow,shrink,fill]")))
 
@@ -178,43 +263,7 @@
                           (.setAccelerator (KeyStroke/getKeyStroke KeyEvent/VK_Q (-> (Toolkit/getDefaultToolkit) (.getMenuShortcutKeyMask))))
                           (.setMnemonic \X)
                           (.addActionListener (on-menubar-item (fn [_ event]
-                                                                 (.dispose jframe))))))))
-
-          #_(.add (doto (JMenu.)
-                    (.setText "edit")
-                    (.setMnemonic \E)
-                    (.add (doto (JMenuItem.)
-                            (.setText "undo")
-                            (.setAccelerator (KeyStroke/getKeyStroke KeyEvent/VK_Z (-> (Toolkit/getDefaultToolkit) (.getMenuShortcutKeyMask))))
-                            (.setMnemonic \U)
-                            (.addActionListener on-menu-item-show-dialog)))
-                    (.add (doto (JMenuItem.)
-                            (.setText "redo")
-                            (.setAccelerator (KeyStroke/getKeyStroke KeyEvent/VK_Y (-> (Toolkit/getDefaultToolkit) (.getMenuShortcutKeyMask))))
-                            (.setMnemonic \R)
-                            (.addActionListener on-menu-item-show-dialog)))
-                    (.addSeparator)
-                    (.add (doto (JMenuItem.)
-                            (.setText "cut")
-                            (.setAccelerator (KeyStroke/getKeyStroke KeyEvent/VK_X (-> (Toolkit/getDefaultToolkit) (.getMenuShortcutKeyMask))))
-                            (.setMnemonic \C)
-                            (.addActionListener on-menu-item-show-dialog)))
-                    (.add (doto (JMenuItem.)
-                            (.setText "copy")
-                            (.setAccelerator (KeyStroke/getKeyStroke KeyEvent/VK_C (-> (Toolkit/getDefaultToolkit) (.getMenuShortcutKeyMask))))
-                            (.setMnemonic \O)
-                            (.addActionListener on-menu-item-show-dialog)))
-                    (.add (doto (JMenuItem.)
-                            (.setText "paste")
-                            (.setAccelerator (KeyStroke/getKeyStroke KeyEvent/VK_V (-> (Toolkit/getDefaultToolkit) (.getMenuShortcutKeyMask))))
-                            (.setMnemonic \P)
-                            (.addActionListener on-menu-item-show-dialog)))
-                    (.addSeparator)
-                    (.add (doto (JMenuItem.)
-                            (.setText "delete")
-                            (.setAccelerator (KeyStroke/getKeyStroke KeyEvent/VK_DELETE 0))
-                            (.setMnemonic \D)
-                            (.addActionListener on-menu-item-show-dialog))))))
+                                                                 (.dispose jframe)))))))))
 
         (.setJMenuBar jframe jmenubar))
 
@@ -223,27 +272,9 @@
                                       (.performQuit ^FlatDesktop$QuitResponse response))
                                     (andThen [_ after] after)))
 
-      #_(let [jtoolbar (JToolBar.)]
-          (doto jtoolbar
-            #_(.setMargin (Insets. 3 3 3 3))
-            (.add (doto (JButton.)
-                    (.setToolTipText "new file")
-                    (.setIcon (FontIcon/of org.kordamp.ikonli.codicons.Codicons/NEW_FILE (UIScale/scale 16) Color/BLACK))))
-            (.add (doto (JButton.)
-                    (.setToolTipText "open file")
-                    (.setIcon (FontIcon/of org.kordamp.ikonli.codicons.Codicons/FOLDER_OPENED (UIScale/scale 16) Color/BLACK))))
-            (.add (doto (JButton.)
-                    (.setToolTipText "save")
-                    (.setIcon (FontIcon/of org.kordamp.ikonli.codicons.Codicons/SAVE (UIScale/scale 16) Color/BLACK))))
-            (.add (doto (JButton.)
-                    (.setToolTipText "undo")
-                    (.setIcon (FontIcon/of org.kordamp.ikonli.codicons.Codicons/DISCARD (UIScale/scale 16) Color/BLACK))))
-            (.add (doto (JButton.)
-                    (.setToolTipText "redo")
-                    (.setIcon (FontIcon/of org.kordamp.ikonli.codicons.Codicons/REDO (UIScale/scale 16) Color/BLACK))))
-            #_(.addSeparator))
-
-          (.add root-panel jtoolbar "dock north"))
+      (let [score-label (JLabel.)]
+        (swap! stateA merge {:score-label score-label})
+        (.add root-panel score-label "dock north"))
 
       (let [content-panel (JPanel.)
             split-pane (JSplitPane.)]
@@ -251,59 +282,6 @@
           (.setLayout (BoxLayout. content-panel BoxLayout/X_AXIS))
           #_(.add (doto split-pane
                     (.setResizeWeight 0.5))))
-
-        #_(let [code-panel (JPanel.)
-                code-layout (BoxLayout. code-panel BoxLayout/Y_AXIS)
-                repl (JTextArea. 1 80)
-                output (JTextArea. 14 80)
-                output-scroll (JScrollPane.)
-                editor (JEditorPane.)
-                editor-scroll (JScrollPane.)]
-
-            (doto editor
-              (.setBorder (EmptyBorder. #_top 0 #_left 0 #_bottom 0 #_right 0)))
-
-            (doto editor-scroll
-              (.setViewportView editor)
-              (.setHorizontalScrollBarPolicy ScrollPaneConstants/HORIZONTAL_SCROLLBAR_NEVER)
-              #_(.setPreferredSize (Dimension. 800 1300)))
-
-            (doto output
-              (.setEditable false))
-
-            (doto output-scroll
-              (.setViewportView output)
-              (.setHorizontalScrollBarPolicy ScrollPaneConstants/HORIZONTAL_SCROLLBAR_NEVER))
-
-            (doto repl
-              (.addKeyListener (reify KeyListener
-                                 (keyPressed
-                                   [_ event]
-                                   (when (= (.getKeyCode ^KeyEvent event) KeyEvent/VK_ENTER)
-                                     (.consume ^KeyEvent event)))
-                                 (keyReleased
-                                   [_ event]
-                                   (when (= (.getKeyCode ^KeyEvent event) KeyEvent/VK_ENTER)
-                                     (-> (.getText repl) (clojure.string/trim) (clojure.string/trim-newline) (read-string) (eval-form))
-                                     (.setText repl "")))
-                                 (keyTyped
-                                   [_ event]))))
-
-            (doto code-panel
-              (.setLayout (MigLayout. "insets 0"
-                                      "[grow,shrink,fill]"
-                                      "[grow,shrink,fill]"))
-              (.add editor-scroll "wrap,height 70%")
-              (.add output-scroll "wrap,height 30%")
-              (.add repl "wrap"))
-
-            (.add root-panel code-panel "dock west")
-            #_(.setLeftComponent split-pane code-panel)
-
-            (swap! stateA merge {:output-scroll output-scroll
-                                 :repl repl
-                                 :output output
-                                 :editor editor}))
 
         (let [canvas (Canvas.)
               canvas-panel (JPanel.)]
@@ -319,7 +297,38 @@
             (.addMouseListener (reify MouseListener
                                  (mouseClicked
                                    [_ event]
-                                   (println :coordinate [(.getX ^MouseEvent event) (.getY ^MouseEvent event)]))
+                                   (println :coordinate [(.getX ^MouseEvent event) (.getY ^MouseEvent event)])
+                                   (let [point (.getPoint ^MouseEvent event)]
+                                     (doseq [{:keys [^Shape category-shape
+                                                     question]} (:question-challenge-states @shapesA)]
+                                       (when (.contains category-shape point)
+                                         (condp = (:type question)
+                                           "boolean"
+                                           (let [result (JOptionPane/showConfirmDialog jframe
+                                                                                       (:question question)
+                                                                                       (:category question)
+                                                                                       JOptionPane/YES_NO_OPTION)
+                                                 answer-string (if (= result 0) "True" "False")]
+                                             (if (= answer-string (:correct_answer question))
+                                               (swap! stateA update :correct inc)
+                                               (swap! stateA update :incorrect inc)))
+                                           "multiple"
+                                           (let [answers (shuffle (concat [(:correct_answer question)] (:incorrect_answers question)))
+                                                 result (JOptionPane/showInputDialog jframe
+                                                                                     (:question question)
+                                                                                     (:category question)
+                                                                                     JOptionPane/PLAIN_MESSAGE
+                                                                                     nil
+                                                                                     (object-array answers)
+                                                                                     (first answers))]
+                                             (if (= result (:correct_answer question))
+                                               (swap! stateA update :correct inc)
+                                               (swap! stateA update :incorrect inc))))
+                                         (swap! stateA update :question-challenges (fn [coll] (keep (fn [question-challenge]
+                                                                                                      (if (= (:question (first question-challenge))
+                                                                                                             (:question question))
+                                                                                                        nil
+                                                                                                        question-challenge)) coll)))))))
                                  (mouseEntered [_ event])
                                  (mouseExited [_ event])
                                  (mousePressed [_ event])
@@ -348,7 +357,7 @@
                 exit||
                 resize|
                 canvas-draw|]} @stateA]
-    
+
     (when SystemInfo/isMacOS
       (System/setProperty "apple.laf.useScreenMenuBar" "true")
       (System/setProperty "apple.awt.application.name" jframe-title)
@@ -390,6 +399,8 @@
 
     (let [exit| (chan 1)]
       (go
+        (<! (timeout 1000))
+        (swap! stateA merge {:graphics (.getGraphics ^Canvas (:canvas @stateA))})
         (loop []
           (let [[value port] (alts! [canvas-draw| exit|])]
             (condp = port
@@ -397,8 +408,15 @@
               (let []
                 #_(println :canvas-draw)
                 (clear-canvas)
-                (draw-line)
-                (draw-word)
+                (draw-grid)
+                (draw-question-challenges)
+                (let [{:keys [^JLabel score-label
+                              correct
+                              incorrect]} @stateA
+                      total (+ correct incorrect)]
+                  (.setText score-label (format "    score: %s/%s %s%%" correct total (int (* 100 (/ correct (if (zero? total) 1 total)))))))
+                #_(draw-line)
+                #_(draw-word)
                 (recur))
 
               exit|
@@ -444,7 +462,47 @@
 
            (do
              #_(eval-form `(print-fns))
-             (force-resize))))))))
+             (force-resize)
+
+             (go
+               (let [questions| (chan 1)
+                     categories| (chan 1)
+                     ex| (chan 1)
+                     _ (clj-http.client/get
+                        "https://opentdb.com/api.php?amount=50"
+                        {:async? true}
+                        (fn [response] (put! questions| (-> response :body (cheshire.core/parse-string true) :results)))
+                        (fn [ex] (println (ex-message ex)) (close! ex|)))
+                     _ (clj-http.client/get
+                        "https://opentdb.com/api_category.php"
+                        {:async? true}
+                        (fn [response] (put! categories| (-> response :body (cheshire.core/parse-string true) :trivia_categories)))
+                        (fn [ex] (println (ex-message ex)) (close! ex|)))
+                     response| (Little-Rock/map vector [questions| categories|])]
+                 (alt!
+                   response|
+                   ([[questions categories]]
+                    (let [{:keys [grid-rows
+                                  grid-cols]} @stateA
+                          cells (for [col-i (range grid-cols)
+                                      row-i (range grid-rows)]
+                                  [row-i col-i])
+                          positions (take 50 (shuffle cells))]
+                      (swap! stateA merge
+                             {:questions questions
+                              :categories categories
+                              :categories-name-to-category (reduce (fn [result category]
+                                                                     (assoc result (:name category)
+                                                                            (merge category
+                                                                                   {:color (color-for-word (:name category))}))) {} categories)
+                              :question-challenges (mapv (fn [question position]
+                                                           [question position])
+                                                         questions positions)})))
+                   ex|
+                   ([ex-message]
+                    (swap! stateA assoc :ex-message ex-message))))
+
+               ))))))))
 
 (defn reload
   []
@@ -465,6 +523,10 @@
                     :editor nil
                     :output-scroll nil
                     :graphics nil
-                    :main-ns (find-ns 'Karga.main)})
+                    :main-ns (find-ns 'Karga.main)
+                    :grid-rows 16
+                    :grid-cols 32
+                    :correct 0
+                    :incorrect 0})
     (window)
     (println "Kuiil has spoken")))

@@ -6,7 +6,11 @@
         com.formdev/flatlaf-extras {:mvn/version "2.1"}
         org.kordamp.ikonli/ikonli-swing {:mvn/version "12.3.1"}
         org.kordamp.ikonli/ikonli-codicons-pack {:mvn/version "12.3.1"}
-        com.miglayout/miglayout-swing {:mvn/version "5.3"}}
+        com.miglayout/miglayout-swing {:mvn/version "5.3"}
+        Pawny/Pawny {:git/url "https://github.com/clojure/test.check"
+                     :sha "b6a318af92e836f1f20960f38a5944168b88d60d"}
+        clj-http/clj-http {:mvn/version "3.12.3"}
+        cheshire/cheshire {:mvn/version "5.10.2"}}
 
  :aliases
  {:repl {:extra-deps {Ripley/Ripley {:git/url "https://github.com/Empire-Strikes-Back/Ripley"
