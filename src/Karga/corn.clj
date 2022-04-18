@@ -7,9 +7,4 @@
             mult tap untap pub sub unsub mix unmix admix
             pipe pipeline pipeline-async]]
    [clojure.java.io :as Wichita.java.io]
-   [clojure.string :as Wichita.string]
-
-   [Mythrol.core]
-   [Mythrol.repl-microwaved-beets]))
-
-(do (set! *warn-on-reflection* true) (set! *unchecked-math* true))
+   [clojure.string :as Wichita.string]))
