@@ -19,7 +19,10 @@
    [Karga.raisins]
    [Karga.sunflower-seeds]
    [Karga.apples]
-   [Karga.corn])
+   [Karga.salt]
+   [Karga.microwaved-potatoes]
+   [Karga.corn]
+   [Karga.beans])
   (:import
    (javax.swing JFrame WindowConstants ImageIcon JPanel JScrollPane JTextArea BoxLayout JEditorPane ScrollPaneConstants SwingUtilities JDialog)
    (javax.swing JMenu JMenuItem JMenuBar KeyStroke JOptionPane JToolBar JButton JToggleButton JSplitPane JLabel)
@@ -338,7 +341,7 @@
 
           (.add canvas-panel canvas "width 100%!,height 100%!")
 
-          (.add root-panel canvas-panel "dock east,width 100%!, height 1:100%:")
+          (.add root-panel canvas-panel "dock east,width 50%!, height 1:100%:")
           (go
             (<! (timeout 50))
             (swap! stateA merge {:canvas canvas
