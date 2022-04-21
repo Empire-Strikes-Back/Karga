@@ -14,7 +14,8 @@
    [clj-http.client]
    [cheshire.core]
    
-   [Karga.seed])
+   [Karga.seed]
+   [Karga.ipfs-http])
   (:import
    (javax.swing JFrame WindowConstants ImageIcon JPanel JScrollPane JTextArea BoxLayout JEditorPane ScrollPaneConstants SwingUtilities JDialog)
    (javax.swing JMenu JMenuItem JMenuBar KeyStroke JOptionPane JToolBar JButton JToggleButton JSplitPane JLabel)
@@ -25,14 +26,19 @@
    (com.formdev.flatlaf FlatLaf FlatLightLaf)
    (com.formdev.flatlaf.extras FlatUIDefaultsInspector FlatDesktop FlatDesktop$QuitResponse FlatSVGIcon)
    (com.formdev.flatlaf.util SystemInfo UIScale)
-   (java.util.function Consumer)
+   (java.util.function Consumer Function)
    (java.util ServiceLoader)
    (org.kordamp.ikonli Ikon)
    (org.kordamp.ikonli IkonProvider)
    (org.kordamp.ikonli.swing FontIcon)
    (org.kordamp.ikonli.codicons Codicons)
    (net.miginfocom.swing MigLayout)
-   (net.miginfocom.layout ConstraintParser LC UnitValue)))
+   (net.miginfocom.layout ConstraintParser LC UnitValue)
+
+   (io.ipfs.api IPFS)
+   (java.util.stream Stream)
+   (java.util Base64)
+   (java.nio.charset StandardCharsets)))
 
 (do (set! *warn-on-reflection* true) (set! *unchecked-math* true))
 
@@ -216,7 +222,7 @@
            stop|]
     :as opts}]
 
-  (let [ ]
+  (let []
 
     (go
       (<! stop|)
@@ -272,5 +278,44 @@
                                                 questions positions)})))
           ex|
           ([ex-message]
-           (swap! stateA assoc :ex-message ex-message)))))))
+           (swap! stateA assoc :ex-message ex-message)))))
+
+    (let [ipfs (IPFS. "/ip4/127.0.0.1/tcp/5002")
+          base-url "http://127.0.0.1:5002"
+          topic (Karga.ipfs-http/encode-base64url-u "raisins")
+          id (-> ipfs (.id) (.get "ID"))
+          sub| (Karga.ipfs-http/pubsub-sub base-url  topic)]
+      
+      (go
+        (loop []
+          (when-let [value (<! sub|)]
+            (when-not (= (:from value) id)
+              (println (merge value
+                              {:data (-> (:data value) (Karga.ipfs-http/decode-base64url-u) (read-string))})))
+            (recur))))
+
+      (go
+        (loop []
+          (<! (timeout 2000))
+          (Karga.ipfs-http/pubsub-pub base-url topic (str {:id id
+                                                           :rand-int (rand-int 100)}))
+          (recur))))))
+
+(comment
+
+  (-> ipfs (.-pubsub) (.sub topic))
+
+  (.map sub (reify Function
+              (apply [_ data]
+                (println data)
+                (println (type data)))
+              (andThen [_ after] after)))
+
+  (go
+    (loop []
+      (<! (timeout 2000))
+      (-> ipfs (.-pubsub) (.pub topic (Karga.ipfs-http/encode-base64url-u (format "%s %s" (rand-int 100) id))))
+      (recur)))
+  ;
+  )
 
