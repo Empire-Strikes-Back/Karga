@@ -17,7 +17,6 @@
    [Karga.raisins]
    [Karga.sunflower-seeds]
    [Karga.apples]
-   [Karga.salt]
    [Karga.microwaved-potatoes]
    [Karga.corn]
    [Karga.beans])
@@ -106,29 +105,6 @@
 
     
 
-    (let [tabbed-pane (JTabbedPane.)
-          raisins-panel (JPanel.)
-          sunflower-seeds-panel (JPanel.)
-          apples-panel (JPanel.)
-          salt-panel (JPanel.)
-          microwaved-potatoes-panel (JPanel.)
-          corn-panel (JPanel.)
-          beans-panel (JPanel.)]
-
-      (doto tabbed-pane
-        (.setTabLayoutPolicy JTabbedPane/SCROLL_TAB_LAYOUT)
-        (.addTab "raisins" (Karga.raisins/create-ui {:jframe jframe
-                                                     :resize| resize|}))
-        (.addTab "sunflower-seeds" sunflower-seeds-panel)
-        (.addTab "apples" apples-panel)
-        (.addTab "salt" salt-panel)
-        (.addTab "microwaved-potatoes" microwaved-potatoes-panel)
-        (.addTab "corn" corn-panel)
-        (.addTab "beans" beans-panel)
-        (.setSelectedIndex 0))
-
-      (.add root-panel tabbed-pane))
-
     (when-let [url (Wichita.java.io/resource "icon.png")]
       (.setIconImage jframe (.getImage (ImageIcon. url))))
 
@@ -198,12 +174,8 @@
      (fn [_]
        (FlatLightLaf/setup)
 
-       (let [{:keys []} (create-jframe {:jframe-title jframe-title
-                                        :resize| resize|})]
-         (Karga.raisins/process
-          {:stop| stop|
-           :resize| (tap resize|m (chan (sliding-buffer 1)))
-           :tab-title (str 'raisins)}))
+       (create-jframe {:jframe-title jframe-title
+                       :resize| resize|})
 
        (do
          #_(eval-form `(print-fns))))))
