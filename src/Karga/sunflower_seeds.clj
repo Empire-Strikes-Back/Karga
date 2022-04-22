@@ -28,3 +28,48 @@
    (net.miginfocom.layout ConstraintParser LC UnitValue)))
 
 (do (set! *warn-on-reflection* true) (set! *unchecked-math* true))
+
+(defonce stateA (atom nil))
+
+(defn draw-grid
+  [{:keys [^Canvas canvas]}]
+  (let [{:keys [grid-rows
+                grid-cols]} @stateA
+        ^Graphics2D graphics (.getGraphics canvas)
+        row-height (/ (.getHeight canvas) grid-rows)
+        col-width (/ (.getWidth canvas) grid-cols)]
+    (doseq [row-i (range grid-rows)]
+      (let [y (* row-i row-height)]
+        (.drawLine graphics 0 y (.getWidth canvas) y)))
+    (doseq [col-i (range grid-cols)]
+      (let [x (* col-i col-width)]
+        (.drawLine graphics x 0 x (.getHeight canvas))))))
+
+(defn clear-canvas
+  [{:keys [^Canvas canvas]
+    :as opts}]
+  (let [^Graphics2D graphics (.getGraphics canvas)]
+    (.clearRect graphics 0 0 (.getWidth canvas)  (.getHeight canvas))
+    (.setPaint graphics (Color. 255 255 255 255) #_(Color. 237 211 175 200))
+    (.fillRect graphics 0 0 (.getWidth canvas) (.getHeight canvas))
+    (.setPaint graphics  Color/BLACK)))
+
+(defn create-ui
+  [{:keys []
+    :as opts}]
+  
+  
+  )
+
+(defn process
+  [{:keys []
+    :as opts}]
+  (let []
+    
+    (let []
+      (reset! stateA {:grid-rows 16
+                      :grid-cols 32}))
+    
+    
+    
+    ))
