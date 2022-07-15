@@ -1,4 +1,4 @@
-(ns Karga.fruit
+(ns Karga.apricots
   (:require
    [clojure.core.async
     :refer [chan put! take! close! offer! to-chan! timeout thread

@@ -21,7 +21,7 @@ minus
 i will have the following processes
   raisins - Conquiztador-like question challenge game
   sunflower-seeds - Heroes of Might and Magic III like tile-map game
-  fruit - 
+  apricots - 
   salt - 
   microwaved-potatoes - 
   corn - MATLAB/math-simulations process with programming language interface - editor and canvas
