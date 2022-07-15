@@ -2,29 +2,23 @@
 
 repl(){
   clj \
-    -J-Dclojure.core.async.pool-size=1 \
-    -X:repl Ripley.core/process \
+    -J-Dclojure.core.async.pool-size=8 \
+    -X:Ripley Ripley.core/process \
     :main-ns Karga.main
 }
 
 
 main(){
   clojure \
-    -J-Dclojure.core.async.pool-size=1 \
+    -J-Dclojure.core.async.pool-size=8 \
     -M -m Karga.main
 }
 
 jar(){
 
+  rm -rf out/*.jar out/classes
   clojure \
-    -X:identicon Zazu.core/process \
-    :word '"Karga"' \
-    :filename '"out/identicon/icon.png"' \
-    :size 256
-
-  rm -rf out/*.jar
-  clojure \
-    -X:uberjar Genie.core/process \
+    -X:Genie Genie.core/process \
     :main-ns Karga.main \
     :filename "\"out/Karga-$(git rev-parse --short HEAD).jar\"" \
     :paths '["src"]'
